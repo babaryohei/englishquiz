@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>単語クイズアプリ</title>
+    <!-- Tailwind CSSを読み込み、モダンなデザインを適用します -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* グローバルなフォントと背景色を設定します */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f0f4f8; /* 明るいグレーの背景 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* ビューポートの高さいっぱいに広げます */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        /* アプリケーションのメインコンテナのスタイル */
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px; /* 角を丸くします */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); /* 影を追加します */
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+        /* クイズの選択肢のスタイル */
+        .quiz-option {
+            background-color: #e2e8f0; /* 薄いグレーの背景 */
+            border: 2px solid #cbd5e1; /* 境界線 */
+            padding: 15px;
+            border-radius: 10px; /* 角を丸くします */
+            margin-bottom: 10px;
+            cursor: pointer; /* ホバー時にカーソルをポインターにします */
+            transition: all 0.2s ease-in-out; /* スムーズなトランジション */
+            text-align: left;
+        }
+        /* クイズの選択肢のホバー時のスタイル */
+        .quiz-option:hover {
+            background-color: #d1d9e6;
+            border-color: #a0aec0;
+        }
+        /* 選択されたクイズの選択肢のスタイル */
+        .quiz-option.selected {
+            background-color: #bfdbfe; /* 明るい青の背景 */
+            border-color: #60a5fa; /* 青い境界線 */
+        }
+        /* 正解の選択肢のスタイル */
+        .quiz-option.correct {
+            background-color: #d1fae5; /* 明るい緑の背景 */
+            border-color: #34d399; /* 緑の境界線 */
+        }
+        /* 不正解の選択肢のスタイル */
+        .quiz-option.incorrect {
+            background-color: #fee2e2; /* 明るい赤の背景 */
+            border-color: #ef4444; /* 赤い境界線 */
+        }
+        /* ローディングオーバーレイのスタイル */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8); /* 半透明の白い背景 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+        }
+        /* スピナーのスタイル */
+        .spinner {
+            border: 8px solid #f3f3f3; /* 薄いグレーの境界線 */
+            border-top: 8px solid #3498db; /* 青い上部境界線 */
+            border-radius: 50%; /* 円形 */
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite; /* 回転アニメーション */
+        }
+        /* スピナーのアニメーションキーフレーム */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* カスタムメッセージボックスのスタイル */
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1001;
+            text-align: center;
+            display: none; /* デフォルトでは非表示 */
+        }
+        /* メッセージボックス内のボタンのスタイル */
+        .message-box button {
+            margin-top: 15px;
+            padding: 8px 15px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        /* フィードバックメッセージのスタイル */
+        .feedback-message {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        .feedback-message.correct {
+            color: #10b981; /* 緑色 */
+        }
+        .feedback-message.incorrect {
+            color: #ef4444; /* 赤色 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold mb-6 text-gray-800">単語クイズアプリ</h1>
+
+        <!-- 画像アップロードセクション -->
+        <div id="upload-section" class="mb-8">
+            <label for="image-upload" class="block text-gray-700 text-sm font-bold mb-2">
+                画像をアップロードしてクイズを作成:
+            </label>
+            <input type="file" id="image-upload" accept="image/*" class="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-blue-50 file:text-blue-700
+                hover:file:bg-blue-100 cursor-pointer">
+            <div id="image-preview" class="mt-4 flex justify-center items-center h-48 bg-gray-100 rounded-lg overflow-hidden">
+                <p class="text-gray-400">ここに画像が表示されます</p>
+                <img src="#" alt="Image Preview" class="hidden max-h-full max-w-full object-contain">
+            </div>
+            <button id="generate-quiz-btn" class="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300">
+                クイズを生成
+            </button>
+        </div>
+
+        <!-- クイズセクション -->
+        <div id="quiz-section" class="hidden">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">単語クイズ</h2>
+            <div id="quiz-container" class="mb-6">
+                <!-- クイズ問題がここに動的に挿入されます -->
+            </div>
+            <div id="feedback-area" class="feedback-message hidden">
+                <!-- 正誤判定メッセージがここに表示されます -->
+            </div>
+            <button id="next-question-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 hidden">
+                次の問題
+            </button>
+            <div id="results" class="mt-6 text-xl font-semibold text-gray-700 hidden">
+                <!-- 最終結果がここに表示されます -->
+            </div>
+            
+            <!-- クイズ終了後の選択肢 -->
+            <div id="quiz-completion-options" class="mt-8 hidden">
+                <p class="text-lg mb-4">どうしますか？</p>
+                <button id="repeat-quiz-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 mr-4">
+                    同じ単語でクイズを繰り返す
+                </button>
+                <button id="retry-incorrect-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300 mr-4">
+                    間違えた単語だけ再挑戦
+                </button>
+                <button id="upload-new-image-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transition duration-300">
+                    新しい画像をアップロード
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ローディングオーバーレイ -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p class="mt-4 text-lg text-gray-700">クイズを生成中...</p>
+    </div>
+
+    <!-- カスタムメッセージボックス -->
+    <div id="message-box" class="message-box">
+        <p id="message-content"></p>
+        <button onclick="document.getElementById('message-box').style.display='none'">OK</button>
+    </div>
+
+    <script>
+        // DOM要素の取得
+        const imageUpload = document.getElementById('image-upload');
+        const imagePreview = document.querySelector('#image-preview img');
+        const imagePreviewPlaceholder = document.querySelector('#image-preview p');
+        const generateQuizBtn = document.getElementById('generate-quiz-btn');
+        const uploadSection = document.getElementById('upload-section');
+        const quizSection = document.getElementById('quiz-section');
+        const quizContainer = document.getElementById('quiz-container');
+        const nextQuestionBtn = document.getElementById('next-question-btn');
+        const feedbackArea = document.getElementById('feedback-area');
+        const resultsDiv = document.getElementById('results');
+        const quizCompletionOptions = document.getElementById('quiz-completion-options');
+        const repeatQuizBtn = document.getElementById('repeat-quiz-btn');
+        const retryIncorrectBtn = document.getElementById('retry-incorrect-btn'); // 新しいボタン
+        const uploadNewImageBtn = document.getElementById('upload-new-image-btn');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const messageBox = document.getElementById('message-box');
+        const messageContent = document.getElementById('message-content');
+
+        let originalQuizData = []; // OCRから生成されたオリジナルのクイズデータ
+        let quizData = []; // 現在のクイズデータを格納する配列 (シャッフルやフィルタリング後)
+        let currentQuestionIndex = 0; // 現在の問題のインデックス
+        let score = 0; // スコア
+        let extractedWordList = []; // OCRで抽出された単語リスト
+        let incorrectQuestions = []; // 間違えた問題のみを格納する配列
+
+        // カスタムメッセージボックスを表示する関数
+        function showMessage(message) {
+            messageContent.textContent = message;
+            messageBox.style.display = 'block';
+        }
+
+        // 画像プレビュー機能
+        imageUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                    imagePreviewPlaceholder.classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                imagePreview.src = '#';
+                imagePreview.classList.add('hidden');
+                imagePreviewPlaceholder.classList.remove('hidden');
+            }
+        });
+
+        // 配列をシャッフルする関数（フィッシャー・イェーツ・シャッフル）
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // ファイルをBase64に変換する関数
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    // "data:image/png;base64," のようなプレフィックスを削除
+                    const base64String = reader.result.split(',')[1];
+                    resolve(base64String);
+                };
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // クイズ生成ボタンのクリックイベント
+        generateQuizBtn.addEventListener('click', async function() {
+            const file = imageUpload.files[0];
+            if (!file) {
+                showMessage('画像をアップロードしてください。');
+                return;
+            }
+
+            loadingOverlay.classList.remove('hidden'); // ローディング表示
+
+            try {
+                const base64ImageData = await fileToBase64(file);
+
+                // Gemini APIにOCRリクエストを送信
+                const prompt = "Extract all English words and their corresponding Japanese translations from this image. Provide the output as a JSON array of objects, where each object has 'english' and 'japanese' keys. For example: [{\"english\": \"boy\", \"japanese\": \"男の子, 少年\"}, {\"english\": \"brother\", \"japanese\": \"兄, 弟, 兄弟\"}]";
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                const payload = {
+                    contents: [
+                        {
+                            role: "user",
+                            parts: [
+                                { text: prompt },
+                                {
+                                    inlineData: {
+                                        mimeType: file.type, // アップロードされたファイルのMIMEタイプを使用
+                                        data: base64ImageData
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    "english": { "type": "STRING" },
+                                    "japanese": { "type": "STRING" }
+                                },
+                                "propertyOrdering": ["english", "japanese"]
+                            }
+                        }
+                    }
+                };
+                const apiKey = ""; // APIキーはCanvasによって自動的に提供されます
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const jsonString = result.candidates[0].content.parts[0].text;
+                    try {
+                        extractedWordList = JSON.parse(jsonString);
+                        if (extractedWordList.length === 0) {
+                            showMessage('画像から単語を抽出できませんでした。別の画像を試してください。');
+                            loadingOverlay.classList.add('hidden');
+                            return;
+                        }
+                    } catch (parseError) {
+                        console.error('JSONパースエラー:', parseError);
+                        showMessage('APIからの応答を処理できませんでした。');
+                        loadingOverlay.classList.add('hidden');
+                        return;
+                    }
+                } else {
+                    showMessage('APIから有効な応答が得られませんでした。');
+                    loadingOverlay.classList.add('hidden');
+                    return;
+                }
+
+                // オリジナルのクイズデータを生成し、保持
+                originalQuizData = createQuizQuestions(extractedWordList);
+                // 現在のクイズデータとしてオリジナルを設定
+                quizData = [...originalQuizData];
+
+                // クイズの状態を初期化
+                resetQuizStateForNewGame();
+
+                renderSingleQuestion(); // 最初のクイズ問題をレンダリング
+                loadingOverlay.classList.add('hidden'); // ローディングを非表示
+                uploadSection.classList.add('hidden'); // アップロードセクションを非表示
+                quizSection.classList.remove('hidden'); // クイズセクションを表示
+
+            } catch (error) {
+                console.error('クイズ生成エラー:', error);
+                showMessage('クイズの生成中にエラーが発生しました: ' + error.message);
+                loadingOverlay.classList.add('hidden');
+            }
+        });
+
+        // クイズ質問を作成するヘルパー関数
+        function createQuizQuestions(words) {
+            const questions = [];
+            const shuffledWords = shuffleArray([...words]); // 単語リストをシャッフル
+
+            shuffledWords.forEach((correctWord, index) => {
+                const questionText = `「${correctWord.english}」は次のうちどれですか？`;
+                const options = [correctWord.japanese]; // 正解の選択肢
+
+                // 不正解の選択肢を3つ選ぶ
+                const incorrectOptions = shuffleArray(words.filter(w => w.english !== correctWord.english))
+                                        .slice(0, 3)
+                                        .map(w => w.japanese);
+
+                // 選択肢が4つ未満の場合、重複を許容して補完
+                while (options.length < 4) {
+                    if (incorrectOptions.length > 0) {
+                        options.push(incorrectOptions.pop());
+                    } else {
+                        // 不正解の選択肢が尽きた場合、既存の単語からランダムに選択（重複あり）
+                        const randomIndex = Math.floor(Math.random() * words.length);
+                        options.push(words[randomIndex].japanese);
+                    }
+                }
+
+                shuffleArray(options); // 選択肢をシャッフル
+
+                questions.push({
+                    id: index,
+                    question: questionText,
+                    options: options,
+                    correctAnswer: correctWord.japanese
+                });
+            });
+            return questions;
+        }
+
+        // クイズの状態を初期化する関数 (新しいゲーム用)
+        function resetQuizStateForNewGame() {
+            currentQuestionIndex = 0;
+            score = 0;
+            incorrectQuestions = []; // 間違えた問題をリセット
+            resultsDiv.textContent = '';
+            resultsDiv.classList.add('hidden');
+            nextQuestionBtn.classList.add('hidden');
+            feedbackArea.classList.add('hidden');
+            quizCompletionOptions.classList.add('hidden'); // 選択肢を非表示
+        }
+
+        // クイズの状態を初期化する関数 (再挑戦用)
+        function resetQuizStateForRetry() {
+            currentQuestionIndex = 0;
+            score = 0;
+            resultsDiv.textContent = '';
+            resultsDiv.classList.add('hidden');
+            nextQuestionBtn.classList.add('hidden');
+            feedbackArea.classList.add('hidden');
+            quizCompletionOptions.classList.add('hidden'); // 選択肢を非表示
+        }
+
+
+        // 単一のクイズ問題をHTMLにレンダリングする関数
+        function renderSingleQuestion() {
+            quizContainer.innerHTML = ''; // 既存のクイズをクリア
+            feedbackArea.classList.add('hidden'); // フィードバックエリアを非表示
+            nextQuestionBtn.classList.add('hidden'); // 次の問題ボタンを非表示
+            quizCompletionOptions.classList.add('hidden'); // 選択肢を非表示
+            resultsDiv.classList.add('hidden'); // 結果表示を非表示
+
+            if (currentQuestionIndex < quizData.length) {
+                const question = quizData[currentQuestionIndex];
+                const questionDiv = document.createElement('div');
+                questionDiv.classList.add('mb-8', 'p-6', 'bg-gray-50', 'rounded-lg', 'shadow-md');
+                questionDiv.innerHTML = `
+                    <p class="text-lg font-semibold mb-4 text-gray-800">問題 ${currentQuestionIndex + 1} / ${quizData.length}</p>
+                    <p class="text-lg font-semibold mb-4 text-gray-800">${question.question}</p>
+                    <div class="options-container">
+                        ${question.options.map((option, optionIndex) => `
+                            <div class="quiz-option" data-question-id="${question.id}" data-option="${option}" data-option-index="${optionIndex}">
+                                ${option}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                quizContainer.appendChild(questionDiv);
+
+                // 選択肢のクリックイベントリスナーを追加
+                document.querySelectorAll('.quiz-option').forEach(optionDiv => {
+                    optionDiv.addEventListener('click', handleOptionClick);
+                });
+            } else {
+                // すべての問題が終了した場合
+                resultsDiv.textContent = `あなたの最終スコア: ${score} / ${quizData.length}`;
+                resultsDiv.classList.remove('hidden');
+                quizCompletionOptions.classList.remove('hidden'); // クイズ終了後の選択肢を表示
+                // 間違えた問題がなければ、「間違えた単語だけ再挑戦」ボタンを非表示にする
+                if (incorrectQuestions.length === 0) {
+                    retryIncorrectBtn.classList.add('hidden');
+                } else {
+                    retryIncorrectBtn.classList.remove('hidden');
+                }
+            }
+        }
+
+        // 選択肢がクリックされたときのハンドラー
+        function handleOptionClick(event) {
+            const clickedOption = event.target;
+            const questionId = clickedOption.dataset.questionId;
+            const selectedOptionText = clickedOption.dataset.option;
+            const currentQuestion = quizData[currentQuestionIndex];
+
+            // すべての選択肢のクリックを無効化
+            document.querySelectorAll(`.quiz-option[data-question-id="${questionId}"]`).forEach(opt => {
+                opt.removeEventListener('click', handleOptionClick); // イベントリスナーを削除
+                opt.style.pointerEvents = 'none'; // クリックを無効化
+            });
+
+            // 正誤判定
+            if (selectedOptionText === currentQuestion.correctAnswer) {
+                clickedOption.classList.add('correct');
+                feedbackArea.textContent = '正解！';
+                feedbackArea.classList.remove('incorrect');
+                feedbackArea.classList.add('correct');
+                score++;
+            } else {
+                clickedOption.classList.add('incorrect');
+                feedbackArea.textContent = '不正解... 正解は: ' + currentQuestion.correctAnswer;
+                feedbackArea.classList.remove('correct');
+                feedbackArea.classList.add('incorrect');
+                // 間違えた問題を記録
+                incorrectQuestions.push(currentQuestion);
+                // 正解の選択肢も表示
+                document.querySelectorAll(`.quiz-option[data-question-id="${questionId}"]`).forEach(opt => {
+                    if (opt.dataset.option === currentQuestion.correctAnswer) {
+                        opt.classList.add('correct');
+                    }
+                });
+            }
+            feedbackArea.classList.remove('hidden');
+            nextQuestionBtn.classList.remove('hidden'); // 次の問題ボタンを表示
+        }
+
+        // 次の問題ボタンのクリックイベント
+        nextQuestionBtn.addEventListener('click', function() {
+            currentQuestionIndex++;
+            renderSingleQuestion(); // 次の問題をレンダリング
+        });
+
+        // 同じ単語でクイズを繰り返すボタンのクリックイベント
+        repeatQuizBtn.addEventListener('click', function() {
+            quizData = shuffleArray([...originalQuizData]); // オリジナルデータをシャッフルして再利用
+            resetQuizStateForRetry(); // クイズの状態をリセット
+            renderSingleQuestion(); // 最初の問題から開始
+        });
+
+        // 間違えた単語だけ再挑戦ボタンのクリックイベント
+        retryIncorrectBtn.addEventListener('click', function() {
+            if (incorrectQuestions.length === 0) {
+                showMessage('間違えた問題はありませんでした！');
+                return;
+            }
+            quizData = shuffleArray([...incorrectQuestions]); // 間違えた問題のみをシャッフルして再利用
+            incorrectQuestions = []; // 再挑戦のために間違えた問題をリセット
+            resetQuizStateForRetry(); // クイズの状態をリセット
+            renderSingleQuestion(); // 最初の問題から開始
+        });
+
+        // 新しい画像をアップロードボタンのクリックイベント
+        uploadNewImageBtn.addEventListener('click', function() {
+            quizSection.classList.add('hidden'); // クイズセクションを非表示
+            uploadSection.classList.remove('hidden'); // アップロードセクションを表示
+            imageUpload.value = ''; // ファイル入力をクリア
+            imagePreview.src = '#';
+            imagePreview.classList.add('hidden');
+            imagePreviewPlaceholder.classList.remove('hidden');
+            
+            // すべての状態をリセット
+            originalQuizData = [];
+            quizData = [];
+            extractedWordList = [];
+            incorrectQuestions = [];
+            resetQuizStateForNewGame(); // 新しいゲーム用のリセット関数を呼び出し
+        });
+    </script>
+</body>
+</html>
