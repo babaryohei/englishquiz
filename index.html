@@ -210,12 +210,11 @@
         const resultsDiv = document.getElementById('results');
         const quizCompletionOptions = document.getElementById('quiz-completion-options');
         const repeatQuizBtn = document.getElementById('repeat-quiz-btn');
-        const retryIncorrectBtn = document.getElementById('retry-incorrect-btn'); // 新しいボタン
+        const retryIncorrectBtn = document.getElementById('retry-incorrect-btn');
         const uploadNewImageBtn = document.getElementById('upload-new-image-btn');
         const loadingOverlay = document.getElementById('loading-overlay');
         const messageBox = document.getElementById('message-box');
         const messageContent = document.getElementById('message-content');
-        const apiKey = "AIzaSyB-C123456789abcdefghijklmnopqrstuvwxyz"
 
         let originalQuizData = []; // OCRから生成されたオリジナルのクイズデータ
         let quizData = []; // 現在のクイズデータを格納する配列 (シャッフルやフィルタリング後)
@@ -319,7 +318,10 @@
                         }
                     }
                 };
-                const apiKey = ""; // APIキーはCanvasによって自動的に提供されます
+                // ★★★ ここにあなたのGemini APIキーを貼り付けてください ★★★
+                // 例: const apiKey = "AIzaSyB-YOUR_ACTUAL_API_KEY_HERE";
+                const apiKey = "AIzaSyAPEJJWoTWWFHrpBYKzgodftJ6HabnmFJE"; // ここにAPIキーを貼り付けます
+                // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
                 const response = await fetch(apiUrl, {
@@ -348,7 +350,9 @@
                         return;
                     }
                 } else {
-                    showMessage('APIから有効な応答が得られませんでした。');
+                    // APIからのエラーメッセージを詳細に表示
+                    const errorMessage = result.error && result.error.message ? result.error.message : 'APIから有効な応答が得られませんでした。';
+                    showMessage('APIエラー: ' + errorMessage + ' (ステータス: ' + response.status + ')');
                     loadingOverlay.classList.add('hidden');
                     return;
                 }
